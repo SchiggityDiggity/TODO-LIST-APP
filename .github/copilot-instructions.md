@@ -1,0 +1,11 @@
+# Project: To-Do List Application
+- Single self-contained index.html (HTML + CSS + JS in one file)
+- Save tasks to localStorage; never add a backend
+- Keep the rocket league theme/car soccer themed; keep already created assets (images, sounds, etc.)
+- Keep bullets/checkboxes for tasks fully left aligned to the all the way to the left, and keep the "Add Task" button at the bottom of the list
+- Plain JavaScript only — no frameworks
+- Avoid using the same colors too much; only use the same colors for the same elements (e.g., all buttons should be the same color, all task text should be the same color, etc.)
+- Allow a group of tasks to be marked as completed at once (e.g., by selecting multiple checkboxes and clicking a "Mark Completed" button)
+- Allow tasks to be deleted individually or in bulk (e.g., by selecting multiple checkboxes and clicking a "Delete" button)
+- Allow tasks to be edited in place (e.g., by clicking on the task text and changing it)
+- Allow tasks to be grouped into one big task if wanted/related (e.g., by selecting multiple checkboxes and clicking a "Group Tasks" button)

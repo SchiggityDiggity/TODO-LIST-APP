@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rocket League Task Board</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;800&family=Rajdhani:wght@500;600;700&display=swap');
+
+    :root {
+      --bg: #07111f;
+      --accent: #ff7a2d;
+      --accent-2: #2ec7d6;
+      --text: #f2f3f7;
+      --muted: #9ba9ba;
+      --done: #5f6f79;
+      --border: rgba(255,255,255,0.1);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: 'Rajdhani', Arial, sans-serif;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 20px;
+      color: var(--text);
+      background: radial-gradient(circle at top, #15324f 0%, #0a1422 45%, var(--bg) 100%);
+    }
+
+    .app {
+      width: min(100%, 760px);
+      border-radius: 24px;
+      overflow: hidden;
+      background: rgba(15, 31, 51, 0.95);
+      border: 1px solid var(--border);
+      box-shadow: 0 18px 45px rgba(0,0,0,0.35);
+    }
+
+    .hero {
+      padding: 22px 24px 18px;
+      background: linear-gradient(90deg, rgba(255,122,45,0.16), rgba(46,199,214,0.10)), linear-gradient(180deg, #182a43, #0e1a2d);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .rank-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 10px 0 0;
+    }
+
+    .rank-pill {
+      padding: 6px 9px;
+      border-radius: 999px;
+      font-size: 0.82rem;
+      font-weight: 800;
+      letter-spacing: 0.02em;
+      border: 1px solid rgba(255,255,255,0.12);
+      text-transform: uppercase;
+    }
+
+    .rank-bronze { background: #8b4a1f; color: #f4d6b0; }
+    .rank-silver { background: #7a8693; color: #f3f6f7; }
+    .rank-gold { background: #b89000; color: #fff6c8; }
+    .rank-platinum { background: #2f8b7f; color: #dff7f0; }
+    .rank-diamond { background: #2cb8d7; color: #e9fbff; }
+    .rank-champ { background: #8e2cff; color: #f2e8ff; }
+    .rank-grandchamp { background: #1b1f2d; color: #fce7a8; }
+    .rank-ssl { background: #ff5f6d; color: #fff1f2; }
+
+    .car-body {
+      position: absolute;
+      left: 22px;
+      top: 12px;
+      width: 58px;
+      height: 20px;
+      border-radius: 12px 16px 12px 12px;
+      background: linear-gradient(90deg, #ff7a2d, #ffd08a);
+      box-shadow: inset -4px -3px 0 rgba(0,0,0,0.14);
+    }
+
+    .car-body::before {
+      content: "";
+      position: absolute;
+      left: 8px;
+      top: -4px;
+      width: 18px;
+      height: 10px;
+      border-radius: 8px 8px 0 0;
+      background: #ffb467;
+    }
+
+    .car-body::after {
+      content: "";
+      position: absolute;
+      right: 6px;
+      top: 6px;
+      width: 10px;
+      height: 8px;
+      border-radius: 4px;
+      background: rgba(255,255,255,0.45);
+    }
+
+    .hero-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .clock {
+      font-size: 1.15rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      font-family: 'Orbitron', sans-serif;
+      color: #fff;
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.14);
+      padding: 8px 12px;
+      border-radius: 999px;
+      min-width: 78px;
+      text-align: center;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.2);
+    }
+
+    .title-block {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .logo-mark {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      display: grid;
+      place-items: center;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      color: #fff;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.3);
+      font-size: 1rem;
+    }
+
+    .visual-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 14px;
+      margin-top: 16px;
+      flex-wrap: wrap;
+    }
+
+    .logo-design {
+      flex: 0 0 154px;
+      min-width: 154px;
+      height: 104px;
+      border-radius: 20px;
+      background: linear-gradient(180deg, #12223c 0%, #0d1728 100%);
+      border: 1px solid rgba(255,255,255,0.14);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 10px 20px rgba(0,0,0,0.15);
+      position: relative;
+      padding: 10px 12px 12px;
+      overflow: hidden;
+    }
+
+    .logo-shield {
+      position: absolute;
+      top: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 68px;
+      height: 68px;
+      background: radial-gradient(circle at 35% 30%, #aad8ff 0%, #2f81c9 45%, #0e4d7f 100%);
+      border-radius: 22px 22px 18px 18px;
+      border: 2px solid rgba(255,255,255,0.18);
+      box-shadow: inset 0 4px 12px rgba(255,255,255,0.15), 0 12px 18px rgba(0,0,0,0.2);
+    }
+
+    .logo-shield::before {
+      content: "";
+      position: absolute;
+      top: 10px;
+      left: 8px;
+      width: 38px;
+      height: 18px;
+      background: rgba(255,255,255,0.7);
+      border-radius: 12px 12px 6px 6px;
+      transform: rotate(-6deg);
+    }
+
+    .logo-shield::after {
+      content: "";
+      position: absolute;
+      bottom: 10px;
+      left: 12px;
+      width: 42px;
+      height: 22px;
+      background: rgba(255,255,255,0.25);
+      border-radius: 50%;
+      transform: rotate(8deg);
+    }
+
+    .logo-text {
+      position: absolute;
+      bottom: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      font-family: 'Orbitron', sans-serif;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: #fff;
+    }
+
+    .logo-text span:first-child {
+      font-size: 0.7rem;
+      opacity: 0.75;
+    }
+
+    .logo-text span:last-child {
+      font-size: 0.95rem;
+      font-weight: 800;
+      letter-spacing: 0.14em;
+    }
+
+    .car-design-row {
+      display: flex;
+      gap: 12px;
+      flex: 1;
+      min-width: 260px;
+      justify-content: space-between;
+    }
+
+    .car-design {
+      position: relative;
+      width: 100px;
+      height: 64px;
+      border-radius: 22px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02));
+      border: 1px solid rgba(255,255,255,0.12);
+      overflow: hidden;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.12);
+    }
+
+    .car-design .car-body {
+      position: absolute;
+      left: 10px;
+      right: 10px;
+      top: 18px;
+      height: 26px;
+      border-radius: 12px;
+      box-shadow: inset -3px -3px 0 rgba(0,0,0,0.15);
+    }
+
+    .car-design .car-roof {
+      position: absolute;
+      left: 18px;
+      right: 18px;
+      top: 10px;
+      height: 12px;
+      border-radius: 8px 8px 2px 2px;
+      background: rgba(255,255,255,0.18);
+    }
+
+    .car-design .car-spoiler {
+      position: absolute;
+      right: 12px;
+      top: 6px;
+      width: 20px;
+      height: 5px;
+      border-radius: 4px;
+      background: rgba(255,255,255,0.15);
+    }
+
+    .car-design .car-decal {
+      position: absolute;
+      top: 24px;
+      left: 18px;
+      right: 18px;
+      height: 10px;
+      border-radius: 6px;
+      opacity: 0.85;
+    }
+
+    .car-design .wheel {
+      position: absolute;
+      bottom: 8px;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #101826;
+      border: 2px solid rgba(255,255,255,0.1);
+      box-shadow: inset 0 0 0 2px rgba(255,255,255,0.12);
+    }
+
+    .car-design .wheel.left { left: 12px; }
+    .car-design .wheel.right { right: 12px; }
+
+    .car-design.fennec .car-body { background: linear-gradient(90deg, #ff6b3d 0%, #ff9f6b 100%); border-radius: 14px 18px 12px 12px; }
+    .car-design.fennec .car-roof { left: 20px; right: 20px; top: 12px; height: 12px; border-radius: 8px 8px 2px 2px; }
+    .car-design.fennec .car-spoiler { right: 10px; top: 8px; width: 24px; }
+    .car-design.fennec .car-decal { background: radial-gradient(circle at 20% 50%, rgba(255,255,255,0.5) 0%, transparent 35%), linear-gradient(90deg, transparent 20%, rgba(0,0,0,0.15) 22%, rgba(0,0,0,0.15) 38%, transparent 42%, transparent 70%, rgba(0,0,0,0.15) 72%); }
+
+    .car-design.dominus .car-body { background: linear-gradient(90deg, #8f2fd8 0%, #d47cff 100%); border-radius: 10px 20px 8px 8px; top: 20px; height: 22px; }
+    .car-design.dominus .car-roof { left: 18px; right: 18px; top: 12px; height: 10px; border-radius: 8px; }
+    .car-design.dominus .car-spoiler { right: 12px; top: 8px; width: 18px; }
+    .car-design.dominus .car-decal { background: linear-gradient(135deg, rgba(255,255,255,0.35) 0%, transparent 46%), linear-gradient(225deg, rgba(255,255,255,0.18) 0%, transparent 42%); }
+
+    .car-design.octane .car-body { background: linear-gradient(90deg, #2e89d9 0%, #74ceff 100%); border-radius: 14px 14px 10px 10px; top: 18px; height: 24px; }
+    .car-design.octane .car-roof { left: 18px; right: 18px; top: 10px; height: 14px; border-radius: 10px 10px 4px 4px; }
+    .car-design.octane .car-spoiler { right: 10px; top: 8px; width: 22px; }
+    .car-design.octane .car-decal { background: linear-gradient(135deg, rgba(255,255,255,0.3) 0%, transparent 30%), linear-gradient(315deg, rgba(255,255,255,0.26) 0%, transparent 40%); }
+
+    .hero h1 {
+      margin: 0;
+      font-size: 1.45rem;
+      letter-spacing: 0.04em;
+      font-family: 'Orbitron', sans-serif;
+      text-transform: uppercase;
+    }
+
+    .hero p {
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .content {
+      padding: 20px 24px 24px;
+    }
+
+    .input-row {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    input {
+      flex: 1;
+      padding: 12px 14px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: #0a1422;
+      color: var(--text);
+      outline: none;
+    }
+
+    button {
+      border: none;
+      border-radius: 999px;
+      padding: 12px 14px;
+      background: linear-gradient(90deg, var(--accent), #ff9b4f);
+      color: white;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.16s ease, opacity 0.16s ease;
+    }
+
+    button:hover { transform: translateY(-1px); }
+
+    button:disabled {
+      cursor: not-allowed;
+      opacity: 0.5;
+      transform: none;
+    }
+
+    .task-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .task-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 10px 12px 10px 8px;
+      border-radius: 14px;
+      background: #111d2f;
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .task-main {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex: 1;
+    }
+
+    .task-select {
+      appearance: auto;
+      flex: 0 0 auto;
+      width: 18px;
+      height: 18px;
+      margin: 0;
+      padding: 0;
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+      accent-color: var(--accent-2);
+      cursor: pointer;
+    }
+
+    .task-item.done .task-text {
+      text-decoration: line-through;
+      color: var(--done);
+    }
+
+    .task-text {
+      flex: 1;
+      min-width: 0;
+      padding: 0;
+      background: transparent;
+      color: var(--text);
+      text-align: left;
+      word-break: break-word;
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 1.02rem;
+      letter-spacing: 0.01em;
+    }
+
+    .task-text:hover { transform: none; }
+
+    .edit-input {
+      flex: 1;
+      min-width: 0;
+      padding: 6px 9px;
+      border-radius: 8px;
+      font: inherit;
+    }
+
+    .icon-btn {
+      flex: 0 0 auto;
+      padding: 7px 10px;
+    }
+
+    .task-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 14px;
+    }
+
+    .task-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .empty {
+      text-align: center;
+      padding: 16px;
+      color: var(--muted);
+      border: 1px dashed rgba(255,255,255,0.12);
+      border-radius: 14px;
+      background: rgba(255,255,255,0.03);
+    }
+
+    .stats {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="hero">
+      <div class="hero-top">
+        <div class="title-block">
+          <div class="logo-mark">RL</div>
+          <div>
+            <h1>Rocket League Task Board</h1>
+            <p>Boost, score, and stay organized.</p>
+          </div>
+        </div>
+        <div id="clock" class="clock">12:00 AM</div>
+      </div>
+
+      <div class="visual-row">
+        <div class="logo-design" aria-label="Rocket League logo design">
+          <div class="logo-shield"></div>
+          <div class="logo-text">
+            <span>Rocket</span>
+            <span>League</span>
+          </div>
+        </div>
+        <div class="car-design-row">
+          <div class="car-design fennec" aria-label="Fennec car design">
+            <div class="car-body"></div>
+            <div class="car-roof"></div>
+            <div class="car-decal"></div>
+            <div class="car-spoiler"></div>
+            <div class="wheel left"></div>
+            <div class="wheel right"></div>
+          </div>
+          <div class="car-design dominus" aria-label="Dominus car design">
+            <div class="car-body"></div>
+            <div class="car-roof"></div>
+            <div class="car-decal"></div>
+            <div class="car-spoiler"></div>
+            <div class="wheel left"></div>
+            <div class="wheel right"></div>
+          </div>
+          <div class="car-design octane" aria-label="Octane car design">
+            <div class="car-body"></div>
+            <div class="car-roof"></div>
+            <div class="car-decal"></div>
+            <div class="car-spoiler"></div>
+            <div class="wheel left"></div>
+            <div class="wheel right"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="rank-row">
+        <span class="rank-pill rank-bronze">Bronze</span>
+        <span class="rank-pill rank-silver">Silver</span>
+        <span class="rank-pill rank-gold">Gold</span>
+        <span class="rank-pill rank-platinum">Platinum</span>
+        <span class="rank-pill rank-diamond">Diamond</span>
+        <span class="rank-pill rank-champ">Champ</span>
+        <span class="rank-pill rank-grandchamp">Grand Champ</span>
+        <span class="rank-pill rank-ssl">SSL</span>
+      </div>
+    </div>
+
+    <div class="content">
+      <div class="input-row">
+        <input id="taskInput" type="text" placeholder="Add a new match mission..." />
+      </div>
+
+      <div class="task-list" id="taskList"></div>
+      <div class="task-footer">
+        <div class="stats" id="stats"></div>
+        <div class="task-actions">
+          <button id="markCompletedBtn" type="button" disabled>Mark Completed</button>
+          <button id="deleteSelectedBtn" type="button" disabled>Delete Selected</button>
+          <button id="groupTasksBtn" type="button" disabled>Group Tasks</button>
+          <button id="addTaskBtn" type="button">Add Task</button>
+          <button id="clearTasksBtn" type="button" disabled>Clear All Tasks</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const storageKey = "rocket-league-tasks";
+    const taskInput = document.getElementById("taskInput");
+    const taskList = document.getElementById("taskList");
+    const stats = document.getElementById("stats");
+    const addTaskBtn = document.getElementById("addTaskBtn");
+    const clearTasksBtn = document.getElementById("clearTasksBtn");
+    const markCompletedBtn = document.getElementById("markCompletedBtn");
+    const deleteSelectedBtn = document.getElementById("deleteSelectedBtn");
+    const groupTasksBtn = document.getElementById("groupTasksBtn");
+    const clock = document.getElementById("clock");
+
+    let tasks = loadTasks();
+    const selectedTaskIds = new Set();
+
+    function loadTasks() {
+      try {
+        const stored = localStorage.getItem(storageKey);
+        return stored ? JSON.parse(stored) : [];
+      } catch (error) {
+        console.error("Unable to load tasks:", error);
+        return [];
+      }
+    }
+
+    function saveTasks() {
+      localStorage.setItem(storageKey, JSON.stringify(tasks));
+    }
+
+    function renderTasks() {
+      const selectedTasks = tasks.filter((task) => selectedTaskIds.has(task.id));
+      const completed = tasks.filter((task) => task.completed).length;
+      stats.textContent = `${tasks.length} tasks • ${completed} completed`;
+      clearTasksBtn.disabled = tasks.length === 0;
+      markCompletedBtn.disabled = selectedTasks.length === 0 || selectedTasks.every((task) => task.completed);
+      deleteSelectedBtn.disabled = selectedTasks.length === 0;
+      groupTasksBtn.disabled = selectedTasks.length < 2;
+      taskList.innerHTML = "";
+
+      if (tasks.length === 0) {
+        taskList.innerHTML = '<div class="empty">No tasks yet. Add your first Rocket League mission.</div>';
+        return;
+      }
+
+      tasks.forEach((task) => {
+        const item = document.createElement("div");
+        item.className = `task-item${task.completed ? " done" : ""}`;
+
+        const main = document.createElement("div");
+        main.className = "task-main";
+
+        const select = document.createElement("input");
+        select.className = "task-select";
+        select.type = "checkbox";
+        select.checked = selectedTaskIds.has(task.id);
+        select.setAttribute("aria-label", `Select task: ${task.text}`);
+        select.addEventListener("change", () => {
+          if (select.checked) selectedTaskIds.add(task.id);
+          else selectedTaskIds.delete(task.id);
+          renderTasks();
+        });
+
+        const text = document.createElement("button");
+        text.className = "task-text";
+        text.type = "button";
+        text.textContent = task.text;
+        text.setAttribute("aria-label", `Edit task: ${task.text}`);
+        text.addEventListener("click", () => beginEditing(task, text));
+
+        main.appendChild(select);
+        main.appendChild(text);
+
+        const removeBtn = document.createElement("button");
+        removeBtn.className = "icon-btn";
+        removeBtn.textContent = "✕";
+        removeBtn.type = "button";
+        removeBtn.setAttribute("aria-label", `Delete task: ${task.text}`);
+        removeBtn.addEventListener("click", () => {
+          tasks = tasks.filter((entry) => entry.id !== task.id);
+          selectedTaskIds.delete(task.id);
+          saveTasks();
+          renderTasks();
+        });
+
+        item.appendChild(main);
+        item.appendChild(removeBtn);
+        taskList.appendChild(item);
+      });
+    }
+
+    function beginEditing(task, textButton) {
+      const editor = document.createElement("input");
+      editor.className = "edit-input";
+      editor.type = "text";
+      editor.value = task.text;
+      editor.setAttribute("aria-label", `Edit task: ${task.text}`);
+      textButton.replaceWith(editor);
+      editor.focus();
+      editor.select();
+
+      let finished = false;
+      const finishEditing = (save) => {
+        if (finished) return;
+        finished = true;
+        const updatedText = editor.value.trim();
+        if (save && updatedText) {
+          task.text = updatedText;
+          saveTasks();
+        }
+        renderTasks();
+      };
+
+      editor.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") finishEditing(true);
+        if (event.key === "Escape") finishEditing(false);
+      });
+      editor.addEventListener("blur", () => finishEditing(true));
+    }
+
+    function updateClock() {
+      const now = new Date();
+      let hours = now.getHours();
+      const minutes = now.getMinutes().toString().padStart(2, "0");
+      const meridiem = hours >= 12 ? "PM" : "AM";
+      hours = hours % 12;
+      hours = hours ? hours : 12;
+      clock.textContent = `${hours}:${minutes} ${meridiem}`;
+    }
+
+    function addTask() {
+      const text = taskInput.value.trim();
+      if (!text) return;
+
+      tasks.unshift({
+        id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+        text,
+        completed: false
+      });
+
+      saveTasks();
+      taskInput.value = "";
+      renderTasks();
+      taskInput.focus();
+    }
+
+    addTaskBtn.addEventListener("click", addTask);
+
+    markCompletedBtn.addEventListener("click", () => {
+      tasks.forEach((task) => {
+        if (selectedTaskIds.has(task.id)) task.completed = true;
+      });
+      selectedTaskIds.clear();
+      saveTasks();
+      renderTasks();
+    });
+
+    deleteSelectedBtn.addEventListener("click", () => {
+      tasks = tasks.filter((task) => !selectedTaskIds.has(task.id));
+      selectedTaskIds.clear();
+      saveTasks();
+      renderTasks();
+    });
+
+    groupTasksBtn.addEventListener("click", () => {
+      const selected = tasks.filter((task) => selectedTaskIds.has(task.id));
+      if (selected.length < 2) return;
+
+      const groupedTask = {
+        id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+        text: selected.map((task) => task.text).join(" + "),
+        completed: selected.every((task) => task.completed)
+      };
+      const firstSelectedIndex = tasks.findIndex((task) => selectedTaskIds.has(task.id));
+      tasks = tasks.filter((task) => !selectedTaskIds.has(task.id));
+      tasks.splice(firstSelectedIndex, 0, groupedTask);
+      selectedTaskIds.clear();
+      saveTasks();
+      renderTasks();
+    });
+
+    clearTasksBtn.addEventListener("click", () => {
+      if (tasks.length === 0) return;
+      if (!confirm("Clear all tasks? This cannot be undone.")) return;
+
+      tasks = [];
+      selectedTaskIds.clear();
+      saveTasks();
+      renderTasks();
+    });
+
+    taskInput.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        addTask();
+      }
+    });
+
+    updateClock();
+    setInterval(updateClock, 1000);
+    renderTasks();
+  </script>
+</body>
+</html>
