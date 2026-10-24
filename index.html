@@ -28,9 +28,33 @@
       padding: 20px;
       color: var(--text);
       background: radial-gradient(circle at top, #15324f 0%, #0a1422 45%, var(--bg) 100%);
+      isolation: isolate;
+    }
+
+    .code-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      overflow: hidden;
+      pointer-events: none;
+      color: #62f28c;
+      opacity: 0.2;
+    }
+
+    .code-backdrop pre {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      white-space: pre;
+      font: 12px/1.9 'Cascadia Code', Consolas, monospace;
+      text-shadow: 0 0 8px rgba(98,242,140,0.35);
     }
 
     .app {
+      position: relative;
+      z-index: 1;
       width: min(100%, 760px);
       border-radius: 24px;
       overflow: hidden;
@@ -431,6 +455,67 @@
 
     .task-text:hover { transform: none; }
 
+    .task-details {
+      display: flex;
+      flex: 1;
+      flex-direction: column;
+      min-width: 0;
+    }
+
+    .group-members {
+      margin: 2px 0 0;
+      padding-left: 18px;
+      color: var(--muted);
+      font-size: 0.88rem;
+      line-height: 1.3;
+    }
+
+    .group-members li {
+      overflow-wrap: anywhere;
+    }
+
+    .group-dialog {
+      width: min(100% - 32px, 380px);
+      padding: 22px;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: #0f1f33;
+      color: var(--text);
+      box-shadow: 0 18px 50px rgba(0,0,0,0.5);
+    }
+
+    .group-dialog::backdrop {
+      background: rgba(3,10,18,0.76);
+      backdrop-filter: blur(3px);
+    }
+
+    .group-dialog h2 {
+      margin: 0 0 14px;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 1.05rem;
+    }
+
+    .group-dialog label {
+      display: block;
+      margin-bottom: 6px;
+      color: var(--muted);
+    }
+
+    .group-dialog input {
+      width: 100%;
+      margin-bottom: 16px;
+    }
+
+    .group-dialog-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+
+    .group-dialog .cancel-group-btn {
+      background: #34465b;
+    }
+
     .edit-input {
       flex: 1;
       min-width: 0;
@@ -476,6 +561,9 @@
   </style>
 </head>
 <body>
+  <div class="code-backdrop" aria-hidden="true">
+    <pre id="codeBackdropText"></pre>
+  </div>
   <div class="app">
     <div class="hero">
       <div class="hero-top">
@@ -546,6 +634,7 @@
       <div class="task-footer">
         <div class="stats" id="stats"></div>
         <div class="task-actions">
+          <button id="undoDeleteBtn" type="button" disabled>Undo Delete</button>
           <button id="markCompletedBtn" type="button" disabled>Mark Completed</button>
           <button id="deleteSelectedBtn" type="button" disabled>Delete Selected</button>
           <button id="groupTasksBtn" type="button" disabled>Group Tasks</button>
@@ -555,6 +644,16 @@
       </div>
     </div>
   </div>
+
+  <dialog class="group-dialog" id="groupDialog" aria-labelledby="groupDialogTitle">
+    <h2 id="groupDialogTitle">Name this task group</h2>
+    <label for="groupNameInput">Group name</label>
+    <input id="groupNameInput" type="text" maxlength="80" required />
+    <div class="group-dialog-actions">
+      <button class="cancel-group-btn" id="cancelGroupBtn" type="button">Cancel</button>
+      <button id="createGroupBtn" type="button">Create Group</button>
+    </div>
+  </dialog>
 
   <script>
     const storageKey = "rocket-league-tasks";
@@ -566,10 +665,37 @@
     const markCompletedBtn = document.getElementById("markCompletedBtn");
     const deleteSelectedBtn = document.getElementById("deleteSelectedBtn");
     const groupTasksBtn = document.getElementById("groupTasksBtn");
+    const undoDeleteBtn = document.getElementById("undoDeleteBtn");
+    const groupDialog = document.getElementById("groupDialog");
+    const groupNameInput = document.getElementById("groupNameInput");
+    const createGroupBtn = document.getElementById("createGroupBtn");
+    const cancelGroupBtn = document.getElementById("cancelGroupBtn");
     const clock = document.getElementById("clock");
+    const codeBackdropText = document.getElementById("codeBackdropText");
 
     let tasks = loadTasks();
+    let undoSnapshot = null;
+    let pendingGroupIds = [];
     const selectedTaskIds = new Set();
+    const codeSamples = [
+      "101010101010 010101010101 10101010",
+      'print("GOAL!")  str(taskCount)  bool(isReady)',
+      "if task.completed: return True  else: continue",
+      "const tasks = loadTasks();  tasks.map(renderTask)",
+      "function saveTasks() { localStorage.setItem(); }",
+      "for (const task of tasks) { updateTask(task); }",
+      'console.log("boost ready");  return status === "OK";'
+    ];
+
+    function renderCodeBackdrop() {
+      const charactersPerRow = Math.ceil(window.innerWidth / 6.8) + 2;
+      const rowCount = Math.ceil(window.innerHeight / 22.8) + 2;
+      const rows = Array.from({ length: rowCount }, (_, index) => {
+        const sample = codeSamples[index % codeSamples.length];
+        return sample.repeat(Math.ceil(charactersPerRow / sample.length)).slice(0, charactersPerRow);
+      });
+      codeBackdropText.textContent = rows.join("\n");
+    }
 
     function loadTasks() {
       try {
@@ -585,6 +711,26 @@
       localStorage.setItem(storageKey, JSON.stringify(tasks));
     }
 
+    function deleteTasksByIds(taskIds) {
+      const idsToDelete = new Set(taskIds);
+      const removedTasks = [];
+
+      tasks.forEach((task, index) => {
+        if (idsToDelete.has(task.id)) removedTasks.push({ task, index });
+      });
+
+      if (removedTasks.length === 0) return;
+
+      undoSnapshot = {
+        removedTasks,
+        originalOrder: tasks.map((task) => task.id)
+      };
+      tasks = tasks.filter((task) => !idsToDelete.has(task.id));
+      removedTasks.forEach(({ task }) => selectedTaskIds.delete(task.id));
+      saveTasks();
+      renderTasks();
+    }
+
     function renderTasks() {
       const selectedTasks = tasks.filter((task) => selectedTaskIds.has(task.id));
       const completed = tasks.filter((task) => task.completed).length;
@@ -593,6 +739,7 @@
       markCompletedBtn.disabled = selectedTasks.length === 0 || selectedTasks.every((task) => task.completed);
       deleteSelectedBtn.disabled = selectedTasks.length === 0;
       groupTasksBtn.disabled = selectedTasks.length < 2;
+      undoDeleteBtn.disabled = undoSnapshot === null;
       taskList.innerHTML = "";
 
       if (tasks.length === 0) {
@@ -625,8 +772,23 @@
         text.setAttribute("aria-label", `Edit task: ${task.text}`);
         text.addEventListener("click", () => beginEditing(task, text));
 
+        const details = document.createElement("div");
+        details.className = "task-details";
+        details.appendChild(text);
+
+        if (Array.isArray(task.members) && task.members.length > 0) {
+          const members = document.createElement("ul");
+          members.className = "group-members";
+          task.members.forEach((member) => {
+            const memberItem = document.createElement("li");
+            memberItem.textContent = member;
+            members.appendChild(memberItem);
+          });
+          details.appendChild(members);
+        }
+
         main.appendChild(select);
-        main.appendChild(text);
+        main.appendChild(details);
 
         const removeBtn = document.createElement("button");
         removeBtn.className = "icon-btn";
@@ -634,10 +796,7 @@
         removeBtn.type = "button";
         removeBtn.setAttribute("aria-label", `Delete task: ${task.text}`);
         removeBtn.addEventListener("click", () => {
-          tasks = tasks.filter((entry) => entry.id !== task.id);
-          selectedTaskIds.delete(task.id);
-          saveTasks();
-          renderTasks();
+          deleteTasksByIds([task.id]);
         });
 
         item.appendChild(main);
@@ -703,6 +862,27 @@
 
     addTaskBtn.addEventListener("click", addTask);
 
+    undoDeleteBtn.addEventListener("click", () => {
+      if (undoSnapshot === null) return;
+
+      undoSnapshot.removedTasks.forEach(({ task, index }) => {
+        const nextTaskId = undoSnapshot.originalOrder
+          .slice(index + 1)
+          .find((taskId) => tasks.some((currentTask) => currentTask.id === taskId));
+        const previousTaskId = undoSnapshot.originalOrder
+          .slice(0, index)
+          .reverse()
+          .find((taskId) => tasks.some((currentTask) => currentTask.id === taskId));
+        const nextIndex = tasks.findIndex((currentTask) => currentTask.id === nextTaskId);
+        const previousIndex = tasks.findIndex((currentTask) => currentTask.id === previousTaskId);
+        const insertIndex = nextIndex >= 0 ? nextIndex : previousIndex >= 0 ? previousIndex + 1 : Math.min(index, tasks.length);
+        tasks.splice(insertIndex, 0, task);
+      });
+      undoSnapshot = null;
+      saveTasks();
+      renderTasks();
+    });
+
     markCompletedBtn.addEventListener("click", () => {
       tasks.forEach((task) => {
         if (selectedTaskIds.has(task.id)) task.completed = true;
@@ -713,37 +893,56 @@
     });
 
     deleteSelectedBtn.addEventListener("click", () => {
-      tasks = tasks.filter((task) => !selectedTaskIds.has(task.id));
+      deleteTasksByIds(selectedTaskIds);
       selectedTaskIds.clear();
-      saveTasks();
-      renderTasks();
     });
 
     groupTasksBtn.addEventListener("click", () => {
       const selected = tasks.filter((task) => selectedTaskIds.has(task.id));
       if (selected.length < 2) return;
 
+      pendingGroupIds = selected.map((task) => task.id);
+      groupNameInput.value = "";
+      groupDialog.showModal();
+      groupNameInput.focus();
+    });
+
+    createGroupBtn.addEventListener("click", () => {
+      groupNameInput.value = groupNameInput.value.trim();
+      if (!groupNameInput.reportValidity()) return;
+
+      const groupName = groupNameInput.value;
+      const selected = tasks.filter((task) => pendingGroupIds.includes(task.id));
+      if (selected.length < 2) {
+        groupDialog.close();
+        return;
+      }
+
       const groupedTask = {
         id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
-        text: selected.map((task) => task.text).join(" + "),
+        text: groupName,
+        members: selected.flatMap((task) => Array.isArray(task.members) && task.members.length > 0 ? task.members : [task.text]),
         completed: selected.every((task) => task.completed)
       };
       const firstSelectedIndex = tasks.findIndex((task) => selectedTaskIds.has(task.id));
       tasks = tasks.filter((task) => !selectedTaskIds.has(task.id));
       tasks.splice(firstSelectedIndex, 0, groupedTask);
       selectedTaskIds.clear();
+      groupDialog.close();
       saveTasks();
       renderTasks();
     });
 
+    cancelGroupBtn.addEventListener("click", () => groupDialog.close());
+    groupDialog.addEventListener("close", () => {
+      pendingGroupIds = [];
+    });
+
     clearTasksBtn.addEventListener("click", () => {
       if (tasks.length === 0) return;
-      if (!confirm("Clear all tasks? This cannot be undone.")) return;
+      if (!confirm("Clear all tasks? You can undo this once.")) return;
 
-      tasks = [];
-      selectedTaskIds.clear();
-      saveTasks();
-      renderTasks();
+      deleteTasksByIds(tasks.map((task) => task.id));
     });
 
     taskInput.addEventListener("keydown", (event) => {
@@ -756,6 +955,8 @@
     updateClock();
     setInterval(updateClock, 1000);
     renderTasks();
+    renderCodeBackdrop();
+    window.addEventListener("resize", renderCodeBackdrop);
   </script>
 </body>
 </html>
