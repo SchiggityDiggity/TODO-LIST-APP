@@ -9,3 +9,4 @@
 - Allow tasks to be deleted individually or in bulk (e.g., by selecting multiple checkboxes and clicking a "Delete" button)
 - Allow tasks to be edited in place (e.g., by clicking on the task text and changing it)
 - Allow tasks to be grouped into one big task if wanted/related (e.g., by selecting multiple checkboxes and clicking a "Group Tasks" button)
+- After implementing something new or changing something, make sure to test it thoroughly to ensure it works as expected and doesn't break existing functionality
