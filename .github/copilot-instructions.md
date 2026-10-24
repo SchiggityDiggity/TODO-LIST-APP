@@ -10,3 +10,4 @@
 - Allow tasks to be edited in place (e.g., by clicking on the task text and changing it)
 - Allow tasks to be grouped into one big task if wanted/related (e.g., by selecting multiple checkboxes and clicking a "Group Tasks" button)
 - After implementing something new or changing something, make sure to test it thoroughly to ensure it works as expected and doesn't break existing functionality
+- After implementing something new or changing something, create a simple new file that provides a description of the changes/feature(s) added, with a brief overview of the changes before the description itself, and store it in a folder called "New_Features" in the root directory of the project. This will help keep track of new features and changes made to the project over time.
