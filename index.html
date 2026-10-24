@@ -364,8 +364,14 @@
 
     .input-row {
       display: flex;
+      flex-wrap: wrap;
       gap: 10px;
       margin-bottom: 14px;
+    }
+
+    .input-row input[type="date"] {
+      flex: 0 1 180px;
+      color-scheme: dark;
     }
 
     input {
@@ -628,6 +634,7 @@
     <div class="content">
       <div class="input-row">
         <input id="taskInput" type="text" placeholder="Add a new match mission..." />
+        <input id="dueDateInput" type="date" aria-label="Due date (optional)" />
       </div>
 
       <div class="task-list" id="taskList"></div>
@@ -696,6 +703,15 @@
       });
       codeBackdropText.textContent = rows.join("\n");
     }
+    function setDueDateRange() {
+      const today = new Date();
+      const year = today.getFullYear();
+      const month = String(today.getMonth() + 1).padStart(2, "0");
+      const day = String(today.getDate()).padStart(2, "0");
+      dueDateInput.min = `${year}-${month}-${day}`;
+      dueDateInput.max = `${year + 100}-12-31`;
+    }
+  const dueDateInput = document.getElementById("dueDateInput");
 
     function loadTasks() {
       try {
@@ -956,6 +972,7 @@
     setInterval(updateClock, 1000);
     renderTasks();
     renderCodeBackdrop();
+    setDueDateRange();
     window.addEventListener("resize", renderCodeBackdrop);
   </script>
 </body>
