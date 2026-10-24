@@ -374,6 +374,37 @@
       color-scheme: dark;
     }
 
+    .date-error {
+      width: 100%;
+      margin: -6px 0 12px;
+      color: #ff8585;
+      font-size: 0.92rem;
+    }
+
+    .sort-row {
+      display: flex;
+      justify-content: flex-end;
+      margin: -2px 0 12px;
+    }
+
+    .sort-control {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .sort-control select {
+      padding: 8px 10px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: #0a1422;
+      color: var(--text);
+      font: inherit;
+      cursor: pointer;
+    }
+
     input {
       flex: 1;
       padding: 12px 14px;
@@ -466,6 +497,24 @@
       flex: 1;
       flex-direction: column;
       min-width: 0;
+    }
+
+    .task-heading {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      gap: 0 10px;
+    }
+
+    .task-heading .task-text {
+      flex: 0 1 auto;
+    }
+
+    .due-date {
+      color: var(--accent-2);
+      font-size: 0.9rem;
+      font-weight: 700;
+      white-space: nowrap;
     }
 
     .group-members {
@@ -634,7 +683,18 @@
     <div class="content">
       <div class="input-row">
         <input id="taskInput" type="text" placeholder="Add a new match mission..." />
-        <input id="dueDateInput" type="date" aria-label="Due date (optional)" />
+        <input id="dueDateInput" type="date" aria-label="Due date (optional)" aria-describedby="dueDateError" />
+      </div>
+      <p id="dueDateError" class="date-error" role="alert" hidden></p>
+
+      <div class="sort-row">
+        <label class="sort-control" for="sortTasksSelect">
+          Sort tasks
+          <select id="sortTasksSelect">
+            <option value="manual">Manual</option>
+            <option value="due-date">Due date (soonest first)</option>
+          </select>
+        </label>
       </div>
 
       <div class="task-list" id="taskList"></div>
@@ -665,6 +725,9 @@
   <script>
     const storageKey = "rocket-league-tasks";
     const taskInput = document.getElementById("taskInput");
+    const dueDateInput = document.getElementById("dueDateInput");
+    const dueDateError = document.getElementById("dueDateError");
+    const sortTasksSelect = document.getElementById("sortTasksSelect");
     const taskList = document.getElementById("taskList");
     const stats = document.getElementById("stats");
     const addTaskBtn = document.getElementById("addTaskBtn");
@@ -711,7 +774,25 @@
       dueDateInput.min = `${year}-${month}-${day}`;
       dueDateInput.max = `${year + 100}-12-31`;
     }
-  const dueDateInput = document.getElementById("dueDateInput");
+
+    function updateDueDateError() {
+      let message = "";
+      if (dueDateInput.validity.badInput) {
+        message = "Enter a valid calendar date.";
+      } else if (dueDateInput.validity.rangeUnderflow) {
+        message = `Due date cannot be before today (${formatDueDate(dueDateInput.min)}).`;
+      } else if (dueDateInput.validity.rangeOverflow) {
+        message = `Due date cannot be after ${formatDueDate(dueDateInput.max)}.`;
+      } else if (dueDateInput.value && !dueDateInput.checkValidity()) {
+        message = "Enter a valid calendar date.";
+      }
+
+      dueDateError.textContent = message;
+      dueDateError.hidden = !message;
+      if (message) dueDateInput.setAttribute("aria-invalid", "true");
+      else dueDateInput.removeAttribute("aria-invalid");
+      return message;
+    }
 
     function loadTasks() {
       try {
@@ -747,7 +828,25 @@
       renderTasks();
     }
 
+    function formatDueDate(dueDate) {
+      const [year, month, day] = dueDate.split("-");
+      return `${month}/${day}/${year}`;
+    }
+
     function renderTasks() {
+      const visibleTasks = sortTasksSelect.value === "due-date"
+        ? tasks
+          .map((task, index) => ({ task, index }))
+          .sort((left, right) => {
+            if (left.task.dueDate && right.task.dueDate) {
+              return left.task.dueDate.localeCompare(right.task.dueDate) || left.index - right.index;
+            }
+            if (left.task.dueDate) return -1;
+            if (right.task.dueDate) return 1;
+            return left.index - right.index;
+          })
+          .map(({ task }) => task)
+        : tasks;
       const selectedTasks = tasks.filter((task) => selectedTaskIds.has(task.id));
       const completed = tasks.filter((task) => task.completed).length;
       stats.textContent = `${tasks.length} tasks • ${completed} completed`;
@@ -763,7 +862,7 @@
         return;
       }
 
-      tasks.forEach((task) => {
+      visibleTasks.forEach((task) => {
         const item = document.createElement("div");
         item.className = `task-item${task.completed ? " done" : ""}`;
 
@@ -790,14 +889,31 @@
 
         const details = document.createElement("div");
         details.className = "task-details";
-        details.appendChild(text);
+
+        const heading = document.createElement("div");
+        heading.className = "task-heading";
+        heading.appendChild(text);
+
+        if (task.dueDate) {
+          const dueDate = document.createElement("time");
+          dueDate.className = "due-date";
+          dueDate.dateTime = task.dueDate;
+          dueDate.textContent = `Due: ${formatDueDate(task.dueDate)}`;
+          heading.appendChild(dueDate);
+        }
+
+        details.appendChild(heading);
 
         if (Array.isArray(task.members) && task.members.length > 0) {
           const members = document.createElement("ul");
           members.className = "group-members";
           task.members.forEach((member) => {
             const memberItem = document.createElement("li");
-            memberItem.textContent = member;
+            const memberText = typeof member === "string" ? member : member.text;
+            const memberDueDate = typeof member === "string" ? "" : member.dueDate;
+            memberItem.textContent = memberDueDate
+              ? `${memberText} (Due: ${formatDueDate(memberDueDate)})`
+              : memberText;
             members.appendChild(memberItem);
           });
           details.appendChild(members);
@@ -864,19 +980,31 @@
       const text = taskInput.value.trim();
       if (!text) return;
 
+      const dueDate = dueDateInput.value;
+      if (updateDueDateError()) {
+        dueDateInput.reportValidity();
+        return;
+      }
+
       tasks.unshift({
         id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
         text,
+        dueDate,
         completed: false
       });
 
       saveTasks();
       taskInput.value = "";
+      dueDateInput.value = "";
+      updateDueDateError();
       renderTasks();
       taskInput.focus();
     }
 
     addTaskBtn.addEventListener("click", addTask);
+    dueDateInput.addEventListener("input", updateDueDateError);
+    dueDateInput.addEventListener("change", updateDueDateError);
+    sortTasksSelect.addEventListener("change", renderTasks);
 
     undoDeleteBtn.addEventListener("click", () => {
       if (undoSnapshot === null) return;
@@ -937,7 +1065,13 @@
       const groupedTask = {
         id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
         text: groupName,
-        members: selected.flatMap((task) => Array.isArray(task.members) && task.members.length > 0 ? task.members : [task.text]),
+        members: selected.flatMap((task) => {
+          if (Array.isArray(task.members) && task.members.length > 0) {
+            return task.members.map((member) => typeof member === "string" ? { text: member, dueDate: "" } : member);
+          }
+          return [{ text: task.text, dueDate: task.dueDate || "" }];
+        }),
+        dueDate: selected.map((task) => task.dueDate).filter(Boolean).sort()[0] || "",
         completed: selected.every((task) => task.completed)
       };
       const firstSelectedIndex = tasks.findIndex((task) => selectedTaskIds.has(task.id));
