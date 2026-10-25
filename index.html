@@ -193,6 +193,18 @@
       overflow: hidden;
     }
 
+    .rocket-league-logo {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    .logo-placeholder {
+      position: absolute;
+      inset: 0;
+    }
+
     .logo-shield {
       position: absolute;
       top: 12px;
@@ -634,10 +646,17 @@
 
       <div class="visual-row">
         <div class="logo-design" aria-label="Rocket League logo design">
-          <div class="logo-shield"></div>
-          <div class="logo-text">
-            <span>Rocket</span>
-            <span>League</span>
+          <img
+            src="https://mb.cision.com/Public/18576/3153803/a3a14109ca17940d_org.png"
+            alt="Rocket League logo"
+            class="rocket-league-logo"
+          />
+          <div class="logo-placeholder" hidden aria-hidden="true">
+            <div class="logo-shield"></div>
+            <div class="logo-text">
+              <span>Rocket</span>
+              <span>League</span>
+            </div>
           </div>
         </div>
         <div class="car-design-row">
@@ -742,6 +761,8 @@
     const cancelGroupBtn = document.getElementById("cancelGroupBtn");
     const clock = document.getElementById("clock");
     const codeBackdropText = document.getElementById("codeBackdropText");
+    const rocketLeagueLogo = document.querySelector(".rocket-league-logo");
+    const logoPlaceholder = document.querySelector(".logo-placeholder");
 
     let tasks = loadTasks();
     let undoSnapshot = null;
@@ -774,6 +795,11 @@
       dueDateInput.min = `${year}-${month}-${day}`;
       dueDateInput.max = `${year + 100}-12-31`;
     }
+
+    rocketLeagueLogo.addEventListener("error", () => {
+      rocketLeagueLogo.hidden = true;
+      logoPlaceholder.hidden = false;
+    });
 
     function updateDueDateError() {
       let message = "";
