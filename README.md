@@ -30,4 +30,6 @@ many extra features, hand-tested the code by using as a user would, catching err
 made AI run quality tests alongside my manual tests, and I made separate .md files that outline important features
 and how each one works with what it does and more.
 
-While AI did most of the creation/coding, I learned how to manage AI and maintain quality control to achieve what I wanted.
+While AI did most of the creation/coding, I learned how to manage AI and maintain quality control to achieve what I wanted. This was the guided app created alongside the lesson, but it contains lots of personal touches and effort in it.
+
+
