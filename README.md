@@ -19,7 +19,7 @@ Also includes stylistic elements:
 
 ## How it works:
 
-- Opens in its own browser page (at least I think), allowing user to perform tasks
+- Opens in its own browser page (I believe you must copy link and clone in VS code or some other method to open in browser page), allowing user to perform tasks
 - Type in task, add due date if wanted, hit enter
 - Add more tasks if wanted
 
